@@ -37,6 +37,12 @@ const categoryList = document.getElementById('categoryList');
 const menuList = document.getElementById('menuList');
 const notification = document.getElementById('notification');
 const imageFileInput = document.getElementById('imageFile');
+function sanitizeFileName(name) {
+  return name
+    .toLowerCase()
+    .replace(/\s+/g, '_')              // пробіли на підкреслення
+    .replace(/[^a-z0-9_.-]/g, '');     // видалити все, крім латиниці, цифр, _, ., -
+}
 
 function showNotification(text) {
   if (!notification) return;
@@ -47,7 +53,9 @@ function showNotification(text) {
 
 async function uploadImageAndGetUrl(file) {
   if (!file) return '';
-  const storageRef = ref(storage, 'images/' + Date.now() + '-' + file.name);
+  const cleanedName = sanitizeFileName(file.name);
+const fileName = `img_${Date.now()}_${cleanedName}`;
+const storageRef = ref(storage, `images/${fileName}`);
   await uploadBytes(storageRef, file);
   return await getDownloadURL(storageRef);
 }

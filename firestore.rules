@@ -2,34 +2,38 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 🥢 Меню
-    match /menu/{menuId} {
-      allow read: if true;
-      allow create, update, delete: if request.auth != null &&
-        request.auth.token.email == "admin@bla.com";
-    }
-
-    // 📂 Категорії
+    // 📁 Категорії
     match /categories/{categoryId} {
       allow read: if true;
-      allow create, update, delete: if request.auth != null &&
-        request.auth.token.email == "admin@bla.com";
+      allow write: if request.auth != null && request.auth.token.email == "admin@bla.com";
+    }
+
+    // 🍽️ Страви (меню)
+    match /menu/{menuId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.email == "admin@bla.com";
     }
 
     // 🧾 Замовлення
     match /orders/{orderId} {
-      allow create: if true;
+      allow create: if true; // Клієнт надсилає замовлення без авторизації
       allow read, update, delete: if request.auth != null &&
         request.auth.token.email in ["admin@bla.com", "kitchen@bla.com"];
     }
 
-    // ⚙️ Адмін-панель
+    // ⚙️ Дані адмін-панелі
     match /adminPanel/{document=**} {
       allow read, write: if request.auth != null &&
         request.auth.token.email == "admin@bla.com";
     }
 
-    // ❌ Все інше — заборонено
+    // 🧑‍🍳 Додатково: якщо є окрема колекція `dishes`
+    match /dishes/{dishId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.email == "admin@bla.com";
+    }
+
+    // ❌ Заборона всього іншого
     match /{document=**} {
       allow read, write: if false;
     }
