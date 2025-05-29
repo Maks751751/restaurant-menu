@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Вхід до Адмін Панелі</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+  <div class="bg-white p-6 rounded shadow w-full max-w-md">
+    <h1 class="text-2xl font-bold mb-4 text-center">Вхід до Адмін Панелі</h1>
+    <form id="loginForm" class="space-y-4">
+      <input type="email" id="email" placeholder="Email" required class="border p-2 w-full rounded">
+      <input type="password" id="password" placeholder="Пароль" required class="border p-2 w-full rounded">
+      <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 w-full">Увійти</button>
+    </form>
+    <p id="errorMsg" class="text-red-500 mt-4 text-center hidden">Невірний email або пароль</p>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
+    import { getAuth, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAn38s4mZz7KEli4594dSUZxk-xFc_NW0k",
+      authDomain: "menublabla-14673.firebaseapp.com",
+      projectId: "menublabla-14673"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    const form = document.getElementById('loginForm');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const errorMsg = document.getElementById('errorMsg');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorMsg.classList.add('hidden');
+
+      const email = emailInput.value.trim();
+      const password = passwordInput.value.trim();
+
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        if (email === 'admin@bla.com') {
+          window.location.href = 'admin.html';
+        } else {
+          errorMsg.textContent = 'Доступ лише для адміністратора';
+          errorMsg.classList.remove('hidden');
+        }
+      } catch (error) {
+        console.error(error);
+        errorMsg.textContent = 'Невірний email або пароль';
+        errorMsg.classList.remove('hidden');
+      }
+    });
+  </script>
+</body>
+</html>

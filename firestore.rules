@@ -1,0 +1,37 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 🥢 Меню
+    match /menu/{menuId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null &&
+        request.auth.token.email == "admin@bla.com";
+    }
+
+    // 📂 Категорії
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null &&
+        request.auth.token.email == "admin@bla.com";
+    }
+
+    // 🧾 Замовлення
+    match /orders/{orderId} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null &&
+        request.auth.token.email in ["admin@bla.com", "kitchen@bla.com"];
+    }
+
+    // ⚙️ Адмін-панель
+    match /adminPanel/{document=**} {
+      allow read, write: if request.auth != null &&
+        request.auth.token.email == "admin@bla.com";
+    }
+
+    // ❌ Все інше — заборонено
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

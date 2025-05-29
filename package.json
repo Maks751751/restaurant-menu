@@ -1,0 +1,20 @@
+{
+  "name": "restaurant-menu",
+  "version": "1.0.0",
+  "description": "Інтерактивне меню ресторану з Firebase та Tailwind CSS",
+  "main": "index.js",
+  "scripts": {
+    "build:css": "tailwindcss -i ./public/input.css -o ./public/output.css --minify",
+    "watch:css": "tailwindcss -i ./public/input.css -o ./public/output.css --watch",
+    "start": "live-server public",
+    "dev": "npm run watch:css"
+  },
+  "keywords": ["restaurant", "menu", "tailwindcss", "firebase"],
+  "author": "Твій автор",
+  "license": "ISC",
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^4.1.7"
+  }
+}

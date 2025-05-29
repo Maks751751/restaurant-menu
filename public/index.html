@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <meta name="version" content="v2025-05-20-14-00" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Меню Ресторану</title>
+  <link rel="stylesheet" href="output.css">
+<style>
+  #imageModal {
+    background-color: rgba(0, 0, 0, 0.85);
+  }
+</style>
+
+</head>
+<body class="font-sans min-h-screen" style="
+  background: url('menu-background.jpg') no-repeat center center;
+  background-size: cover;
+">
+
+
+
+  <header class="bg-transparent text-white p-4 text-center">
+    <h1 class="text-3xl font-bold">bla_bla_roll</h1>
+  </header>
+
+  <section class="container mx-auto py-8">
+    <div class="flex justify-center mb-6">
+      <button id="menuTab" class="px-4 py-2 mx-2 bg-black text-white rounded hover:bg-gray-800 focus:outline-none">Меню</button>
+      <button id="cartTab" class="px-4 py-2 mx-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400 focus:outline-none">
+        Кошик
+        <span id="cartCount" class="bg-red-500 text-white text-xs rounded-full h-5 w-5 inline-flex items-center justify-center ml-2">0</span>
+      </button>
+    </div>
+
+    <div id="menuSection">
+      <h2 class="text-3xl font-bold text-white mb-6 text-center">Наше Меню</h2>
+      <div id="categoryTabs" class="flex flex-wrap justify-center mb-6"></div>
+      <div id="menu" class="space-y-6"></div>
+    </div>
+
+    <div id="cartSection" class="hidden">
+      <h2 class="text-3xl font-bold text-white mb-6 text-center">Ваш Кошик</h2>
+      <div id="cart" class="bg-gray-800 bg-opacity-75 p-4 rounded shadow text-white"></div>
+      <div class="mt-4 flex flex-col items-center">
+        <button id="orderButton" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Відправити замовлення</button>
+      </div>
+    </div>
+  </section>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
+    import {
+  getFirestore,
+  collection,
+  getDocs,
+  addDoc,
+  serverTimestamp,
+  query,
+  orderBy
+} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAn38s4mZz7KEli4594dSUZxk-xFc_NW0k",
+      authDomain: "menublabla-14673.firebaseapp.com",
+      projectId: "menublabla-14673"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const menuContainer = document.getElementById('menu');
+    const cartContainer = document.getElementById('cart');
+    const cartTab = document.getElementById('cartTab');
+    const menuTab = document.getElementById('menuTab');
+    const cartSection = document.getElementById('cartSection');
+    const menuSection = document.getElementById('menuSection');
+    const cartCount = document.getElementById('cartCount');
+    const orderButton = document.getElementById('orderButton');
+    const categoryTabs = document.getElementById('categoryTabs');
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const tableNumber = urlParams.get('table');
+
+    let cart = [];
+    let allItems = [];
+
+    function showTab(sectionToShow) {
+      [menuSection, cartSection].forEach(sec => sec.classList.add('hidden'));
+      sectionToShow.classList.remove('hidden');
+    }
+
+    menuTab.addEventListener('click', () => showTab(menuSection));
+    cartTab.addEventListener('click', () => showTab(cartSection));
+
+    function updateCartCount() {
+      const total = cart.reduce((sum, i) => sum + i.quantity, 0);
+      cartCount.textContent = total;
+      cartCount.style.display = total > 0 ? 'inline-flex' : 'none';
+    }
+
+    function displayCart() {
+      cartContainer.innerHTML = '';
+      if (cart.length === 0) {
+        cartContainer.innerHTML = '<p class="text-center text-gray-300">Кошик порожній.</p>';
+        return;
+      }
+      let total = 0;
+      const ul = document.createElement('ul');
+      cart.forEach((item, index) => {
+        const li = document.createElement('li');
+        const price = item.price * item.quantity;
+        total += price;
+        li.className = 'flex justify-between border-b py-2';
+        li.innerHTML = `${item.name} ${item.size ? `(${item.size})` : ''} x${item.quantity} - ${price} грн
+          <button class="text-red-400" onclick="removeFromCart(${index})">Видалити</button>`;
+        ul.appendChild(li);
+      });
+      cartContainer.appendChild(ul);
+      const totalDiv = document.createElement('div');
+      totalDiv.className = 'text-right mt-4 font-bold';
+      totalDiv.textContent = `Загальна сума: ${total} грн`;
+      cartContainer.appendChild(totalDiv);
+    }
+
+    window.removeFromCart = function(index) {
+      cart.splice(index, 1);
+      displayCart();
+      updateCartCount();
+    };
+
+    window.addToCart = function(name, size = null, price = 0) {
+      const key = name + (size || '');
+      const existing = cart.find(i => i.key === key);
+      if (existing) {
+        existing.quantity += 1;
+      } else {
+        cart.push({ key, name, size, price, quantity: 1 });
+      }
+      displayCart();
+      updateCartCount();
+    };
+
+    orderButton.addEventListener('click', async () => {
+      if (cart.length === 0) return 
+      const total = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
+      await addDoc(collection(db, 'orders'), {
+        items: cart,
+        total,
+        table: tableNumber || 'невідомо',
+        timestamp: serverTimestamp(),
+        status: 'new'
+      });
+      cart = [];
+      displayCart();
+      updateCartCount();
+      alert('Замовлення відправлено!');
+    });
+
+    function showCategory(category) {
+      menuContainer.innerHTML = '';
+      const items = allItems.filter(i => i.category === category);
+      const section = document.createElement('div');
+      section.className = 'bg-gray-800 bg-opacity-75 p-4 rounded shadow';
+
+      items.forEach(item => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'mb-4 border-b border-gray-600 pb-4';
+
+        let html = `
+  <div class="flex gap-4">
+    <div class="w-32 flex-shrink-0">
+      ${item.imageUrl ? `<img src="${item.imageUrl}" alt="${item.name}" class="w-full h-24 object-cover rounded cursor-pointer">` : ''}
+    </div>
+    <div class="flex-grow">
+      <h4 class="text-lg font-semibold text-white">${item.name}</h4>
+      <span class="text-white font-semibold priceDisplay">${item.price ? item.price + ' грн' : item.sizes?.[0]?.price + ' грн'}</span>
+      ${item.ingredients ? `<p class="text-gray-300 italic">${item.ingredients}</p>` : ''}
+      ${item.description ? `<p class="text-gray-400">${item.description}</p>` : ''}
+      ${item.grams ? `<p class="text-gray-400">${item.grams}</p>` : ''}
+
+      ${item.sizes ? `
+        <div class="mt-2 space-y-2">
+          <select class="sizeSelect w-full p-2 rounded border">
+            ${item.sizes.map(s => `<option value="${s.size}" data-price="${s.price}">${s.size}</option>`).join('')}
+          </select>
+          <button class="addBtn w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" data-name="${item.name}">Додати</button>
+        </div>
+      ` : `
+        <div class="mt-4">
+          <button class="addBtn w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" data-name="${item.name}" data-price="${item.price}">Додати</button>
+        </div>
+      `}
+    </div>
+  </div>
+`;
+
+
+
+
+        
+        itemDiv.innerHTML = html;
+        section.appendChild(itemDiv);
+      });
+
+      menuContainer.appendChild(section);
+    }
+
+    // Централізоване додавання до кошика
+menuContainer.addEventListener('click', (event) => {
+  const button = event.target.closest('.addBtn');
+  if (!button) return;
+  const block = button.closest('div');
+  const name = button.dataset.name;
+
+  const select = block.querySelector('.sizeSelect');
+  if (select) {
+    const selected = select.options[select.selectedIndex];
+    const size = selected.value;
+    const price = parseFloat(selected.dataset.price);
+    const priceDisplay = button.closest('.mb-4').querySelector('.priceDisplay');
+    if (priceDisplay) priceDisplay.textContent = `${price} грн`;
+    if (!price || isNaN(price)) return;
+    addToCart(name, size, price);
+  } else {
+    const price = parseFloat(button.dataset.price);
+    if (!price || isNaN(price)) return;
+    addToCart(name, null, price);
+  }
+});
+
+// Оновлення ціни при виборі розміру
+menuContainer.addEventListener('change', (event) => {
+  const select = event.target.closest('.sizeSelect');
+  if (!select) return;
+  const selected = select.options[select.selectedIndex];
+  const price = parseFloat(selected.dataset.price);
+  const wrapper = select.closest('.mb-4');
+  const priceDisplay = wrapper?.querySelector('.priceDisplay');
+  if (priceDisplay) priceDisplay.textContent = `${price} грн`;
+});
+
+    async function loadMenu() {
+  // 1. Завантаження всіх страв
+  const snapshot = await getDocs(collection(db, 'menu'));
+  allItems = snapshot.docs.map(doc => doc.data());
+
+  // 2. Завантаження впорядкованих категорій з колекції 'categories'
+  const catSnapshot = await getDocs(query(collection(db, 'categories'), orderBy('order')));
+  const categories = catSnapshot.docs.map(doc => doc.data().name);
+
+  // 3. Створення вкладок для кожної категорії
+  categoryTabs.innerHTML = '';
+  categories.forEach((cat, idx) => {
+    const btn = document.createElement('button');
+    btn.textContent = cat;
+    btn.className = 'px-3 py-2 mx-1 mb-2 bg-gray-700 text-white rounded hover:bg-gray-600';
+    btn.onclick = () => showCategory(cat);
+    categoryTabs.appendChild(btn);
+    if (idx === 0) showCategory(cat); // показуємо першу одразу
+  });
+}
+
+    loadMenu();
+const modal = document.getElementById('imageModal');
+const modalImg = document.getElementById('modalImage');
+
+menuContainer.addEventListener('click', (e) => {
+  if (e.target.tagName === 'IMG' && e.target.src) {
+    modalImg.src = e.target.src;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+});
+
+modal.addEventListener('click', () => {
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
+});
+
+   </script>
+
+  <!-- Модальне вікно для зображення -->
+  <div id="imageModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-90">
+    <img id="modalImage" class="max-w-full max-h-full rounded shadow-lg">
+  </div>
+<!-- 🔧 Hidden force-classes to make Tailwind keep these in output.css -->
+<div class="hidden
+  px-3 py-2 px-4 py-2 mx-1 mb-2
+  bg-black bg-gray-300 bg-gray-400 bg-gray-700 bg-gray-800 bg-opacity-75
+  bg-blue-500 bg-green-500 bg-red-500
+  hover:bg-blue-600 hover:bg-gray-600 hover:bg-gray-800 hover:bg-green-600 hover:bg-gray-400
+  text-white text-gray-300 text-gray-400 text-gray-800 text-xs text-3xl text-lg text-center text-right font-bold font-semibold italic
+  rounded rounded-full
+  w-5 w-32 w-full max-w-full max-h-full h-5 h-24
+  inline-flex flex justify-center justify-between flex-wrap flex-grow flex-col flex-shrink-0 items-center
+  space-y-2 gap-4 mt-2 mt-4 mb-4 pb-4 p-2 p-4 shadow
+  border border-b border-gray-600
+  object-cover cursor-pointer hidden
+"></div>
+</body>
+</html>
+
+

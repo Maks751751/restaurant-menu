@@ -1,0 +1,19 @@
+# Ігноруємо node_modules, бо ця папка велика і створюється локально
+node_modules/
+
+# Ігноруємо компілятор Tailwind
+tailwindcss.exe
+
+# Ігноруємо тимчасові файли та кеші
+.DS_Store
+*.log
+*.tmp
+
+# Віртуальні середовища
+.env
+.env.local
+.env.production
+
+# Інше (резервні копії або старі файли)
+*.bak
+*.old

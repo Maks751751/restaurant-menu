@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR-коди для столів</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+  <header class="bg-blue-600 text-white p-4">
+    <div class="container mx-auto">
+      <h1 class="text-2xl font-bold">QR-коди для столів</h1>
+    </div>
+  </header>
+
+  <section class="container mx-auto py-8">
+    <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Список QR-кодів</h2>
+    <p class="text-center text-gray-600 mb-6">Скануйте QR-код, щоб відкрити меню для відповідного столу.</p>
+    <div id="qrCodes" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+  </section>
+
+  <footer class="bg-gray-800 text-white py-4 text-center">
+    <p>© 2025 Ресторан. Усі права захищені.</p>
+  </footer>
+
+  <script>
+    const qrCodesContainer = document.getElementById('qrCodes');
+    const baseUrl = 'https://menublabla-14673.web.app';
+
+    // Генеруємо QR-коди для столів від 1 до 15
+    for (let table = 1; table <= 15; table++) {
+      const url = `${baseUrl}?table=${table}`; // виправлено без "/"
+
+      const qrDiv = document.createElement('div');
+      qrDiv.className = 'bg-white p-4 rounded shadow text-center';
+
+      const qrCodeContainer = document.createElement('div');
+      qrCodeContainer.id = `qrcode-${table}`;
+      qrDiv.appendChild(qrCodeContainer);
+
+      const tableText = document.createElement('p');
+      tableText.className = 'mt-2 font-bold text-gray-800';
+      tableText.textContent = `Стіл №${table}`;
+      qrDiv.appendChild(tableText);
+
+      const linkText = document.createElement('p');
+      linkText.className = 'mt-1 text-gray-600 text-sm';
+      linkText.innerHTML = `<a href="${url}" class="underline">${url}</a>`;
+      qrDiv.appendChild(linkText);
+
+      qrCodesContainer.appendChild(qrDiv);
+
+      new QRCode(qrCodeContainer, {
+        text: url,
+        width: 150,
+        height: 150,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.H
+      });
+    }
+  </script>
+</body>
+</html>

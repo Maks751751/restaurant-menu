@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <title>Оновлення статусу замовлень</title>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
+    import { getFirestore, collection, getDocs, updateDoc, doc } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+
+    // Твоя конфігурація Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyAn38s4mZz7KEli4594dSUZxk-xFc_NW0k",
+      authDomain: "menublabla-14673.firebaseapp.com",
+      projectId: "menublabla-14673"
+    };
+
+    // Ініціалізація Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Основна логіка
+    async function fixMissingStatus() {
+      const snapshot = await getDocs(collection(db, 'orders'));
+      let fixed = 0;
+
+      for (const docSnap of snapshot.docs) {
+        const data = docSnap.data();
+        const ref = doc(db, 'orders', docSnap.id);
+
+        if (!data.status && data.doneAt) {
+          await updateDoc(ref, { status: 'done' });
+          console.log(`✅ Додано status: 'done' → ${docSnap.id}`);
+          fixed++;
+        }
+      }
+
+      alert(`Готово! Оновлено: ${fixed} замовлень`);
+    }
+
+    fixMissingStatus();
+  </script>
+</head>
+<body>
+  <h1 style="text-align:center; margin-top:50px;">⏳ Оновлення статусу виконаних замовлень...</h1>
+</body>
+</html>
