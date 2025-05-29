@@ -1,4 +1,4 @@
-// admin.js — повна оновлена версія з підтримкою пошуку страв
+// admin.js — оновлений і стабільний з перевірками DOM
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import {
@@ -12,7 +12,7 @@ import {
   addDoc
 } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 
-import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
+import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {
   getStorage,
   ref,
@@ -24,7 +24,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyAn38s4mZz7KEli4594dSUZxk-xFc_NW0k",
   authDomain: "menublabla-14673.firebaseapp.com",
   projectId: "menublabla-14673",
-  storageBucket: "menublabla-14673.firebasestorage.app"
+  storageBucket: "menublabla-14673.appspot.com"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -39,6 +39,7 @@ const notification = document.getElementById('notification');
 const imageFileInput = document.getElementById('imageFile');
 
 function showNotification(text) {
+  if (!notification) return;
   notification.textContent = text;
   notification.classList.remove('hidden');
   setTimeout(() => notification.classList.add('hidden'), 3000);
@@ -52,6 +53,7 @@ async function uploadImageAndGetUrl(file) {
 }
 
 async function loadCategories() {
+  if (!categorySelect || !categoryList) return;
   categorySelect.innerHTML = '';
   categoryList.innerHTML = '';
 
@@ -117,78 +119,85 @@ async function loadCategories() {
   );
 }
 
-document.getElementById('addCategoryForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const newCatInput = document.getElementById('newCategory');
-  const newCat = newCatInput.value.trim();
-  if (!newCat) return;
+const catForm = document.getElementById('addCategoryForm');
+if (catForm) {
+  catForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const newCatInput = document.getElementById('newCategory');
+    const newCat = newCatInput.value.trim();
+    if (!newCat) return;
 
-  try {
-    await addDoc(collection(db, 'categories'), {
-      name: newCat,
-      order: Date.now()
-    });
-    showNotification('✅ Категорію додано');
-    newCatInput.value = '';
-    await loadCategories();
-  } catch (err) {
-    console.error('❌ Помилка додавання категорії:', err);
-    showNotification('Помилка при додаванні категорії');
-  }
-});
+    try {
+      await addDoc(collection(db, 'categories'), {
+        name: newCat,
+        order: Date.now()
+      });
+      showNotification('✅ Категорію додано');
+      newCatInput.value = '';
+      await loadCategories();
+    } catch (err) {
+      console.error('❌ Помилка додавання категорії:', err);
+      showNotification('Помилка при додаванні категорії');
+    }
+  });
+}
 
-document.getElementById('addForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const form = e.target;
-  const editingId = form.dataset.editingId;
-  const imageFile = imageFileInput.files[0];
-  let imageUrl = document.getElementById('imageUrl').value;
+const formAddDish = document.getElementById('addForm');
+if (formAddDish) {
+  formAddDish.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const editingId = form.dataset.editingId;
+    const imageFile = imageFileInput.files[0];
+    let imageUrl = document.getElementById('imageUrl').value;
 
-  if (imageFile) {
-    imageUrl = await uploadImageAndGetUrl(imageFile);
-  }
-
-  const data = {
-    name: document.getElementById('name').value,
-    category: document.getElementById('category').value,
-    ingredients: document.getElementById('ingredients').value,
-    grams: document.getElementById('grams').value,
-    imageUrl: imageUrl,
-  };
-
-  const sizesVisible = !document.getElementById('pizzaSizes').classList.contains('hidden');
-  if (sizesVisible) {
-    const sizes = [];
-    if (document.getElementById('priceS').value) sizes.push({ size: 'S', price: +document.getElementById('priceS').value });
-    if (document.getElementById('priceM').value) sizes.push({ size: 'M', price: +document.getElementById('priceM').value });
-    if (document.getElementById('priceL').value) sizes.push({ size: 'L', price: +document.getElementById('priceL').value });
-    data.sizes = sizes;
-  } else {
-    data.price = +document.getElementById('price').value;
-  }
-
-  try {
-    if (editingId) {
-      await updateDoc(doc(db, 'menu', editingId), data);
-      showNotification('✅ Страву оновлено');
-    } else {
-      await addDoc(collection(db, 'menu'), data);
-      showNotification('✅ Страву додано');
+    if (imageFile) {
+      imageUrl = await uploadImageAndGetUrl(imageFile);
     }
 
-    form.reset();
-    delete form.dataset.editingId;
-    imageFileInput.value = '';
-    document.getElementById('pizzaSizes').classList.add('hidden');
-    document.getElementById('singlePriceBlock').classList.remove('hidden');
-    await loadMenu();
-  } catch (err) {
-    console.error('❌ Помилка збереження:', err);
-    showNotification('Помилка при збереженні');
-  }
-});
+    const data = {
+      name: document.getElementById('name').value,
+      category: document.getElementById('category').value,
+      ingredients: document.getElementById('ingredients').value,
+      grams: document.getElementById('grams').value,
+      imageUrl: imageUrl,
+    };
+
+    const sizesVisible = !document.getElementById('pizzaSizes').classList.contains('hidden');
+    if (sizesVisible) {
+      const sizes = [];
+      if (document.getElementById('priceS').value) sizes.push({ size: 'S', price: +document.getElementById('priceS').value });
+      if (document.getElementById('priceM').value) sizes.push({ size: 'M', price: +document.getElementById('priceM').value });
+      if (document.getElementById('priceL').value) sizes.push({ size: 'L', price: +document.getElementById('priceL').value });
+      data.sizes = sizes;
+    } else {
+      data.price = +document.getElementById('price').value;
+    }
+
+    try {
+      if (editingId) {
+        await updateDoc(doc(db, 'menu', editingId), data);
+        showNotification('✅ Страву оновлено');
+      } else {
+        await addDoc(collection(db, 'menu'), data);
+        showNotification('✅ Страву додано');
+      }
+
+      form.reset();
+      delete form.dataset.editingId;
+      imageFileInput.value = '';
+      document.getElementById('pizzaSizes').classList.add('hidden');
+      document.getElementById('singlePriceBlock').classList.remove('hidden');
+      await loadMenu();
+    } catch (err) {
+      console.error('❌ Помилка збереження:', err);
+      showNotification('Помилка при збереженні');
+    }
+  });
+}
 
 async function loadMenu() {
+  if (!menuList) return;
   menuList.innerHTML = '';
 
   const snapshot = await getDocs(collection(db, 'menu'));
@@ -302,9 +311,13 @@ async function deleteCategory(id) {
 }
 
 onAuthStateChanged(auth, async (user) => {
+  const authSection = document.getElementById('authSection');
+  const adminPanel = document.getElementById('adminPanel');
+
   if (user) {
-    document.getElementById('authSection').classList.add('hidden');
-    document.getElementById('adminPanel').classList.remove('hidden');
+    if (authSection) authSection.classList.add('hidden');
+    if (adminPanel) adminPanel.classList.remove('hidden');
+
     await loadCategories();
     await loadMenu();
 
@@ -319,6 +332,20 @@ onAuthStateChanged(auth, async (user) => {
       });
     }
   } else {
-    console.log("Користувач вийшов або неавторизований");
+    if (authSection) authSection.classList.remove('hidden');
+    if (adminPanel) adminPanel.classList.add('hidden');
+    showNotification('Будь ласка, увійдіть в систему');
   }
 });
+
+const logoutButton = document.getElementById('logoutButton');
+if (logoutButton) {
+  logoutButton.addEventListener('click', async () => {
+    try {
+      await signOut(auth);
+      window.location.href = 'admin-login.html';
+    } catch (err) {
+      console.error('Помилка при виході:', err);
+    }
+  });
+}
