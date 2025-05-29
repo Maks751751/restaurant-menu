@@ -26,11 +26,11 @@
 
   <script>
     const qrCodesContainer = document.getElementById('qrCodes');
-    const baseUrl = 'https://menublabla-14673.web.app';
+    const baseUrl = 'https://maks751751.github.io/restaurant-menu/kitchen.html';
 
     // Генеруємо QR-коди для столів від 1 до 15
     for (let table = 1; table <= 15; table++) {
-      const url = `${baseUrl}?table=${table}`; // виправлено без "/"
+      const url = `${baseUrl}?table=${table}`;
 
       const qrDiv = document.createElement('div');
       qrDiv.className = 'bg-white p-4 rounded shadow text-center';
@@ -46,7 +46,7 @@
 
       const linkText = document.createElement('p');
       linkText.className = 'mt-1 text-gray-600 text-sm';
-      linkText.innerHTML = `<a href="${url}" class="underline">${url}</a>`;
+      linkText.innerHTML = `<a href="${url}" class="underline" target="_blank">${url}</a>`;
       qrDiv.appendChild(linkText);
 
       qrCodesContainer.appendChild(qrDiv);
