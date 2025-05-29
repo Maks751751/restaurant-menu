@@ -6,14 +6,14 @@
   <title>Кухня - Замовлення</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="font-sans min-h-screen" style="background: url('img/kitchen-background.jpg') no-repeat center center; background-size: cover;">
+<body class="font-sans min-h-screen bg-white">
   <header class="bg-black text-white p-4 flex justify-between items-center">
     <div class="container mx-auto">
       <h1 class="text-2xl font-bold">Замовлення для Кухні</h1>
     </div>
     <div class="flex items-center gap-4">
       <label class="text-sm">
-        <input type="checkbox" id="soundToggle" checked class="mr-1">Звук
+        <input type="checkbox" id="soundToggle" checked class="mr-1" />Звук
       </label>
       <button id="logoutButton" class="bg-red-500 hover:bg-red-600 px-4 py-1 rounded">Вийти</button>
     </div>
@@ -21,8 +21,8 @@
 
   <section class="container mx-auto py-8 bg-white bg-opacity-90 rounded-lg">
     <div class="flex justify-center mb-6">
-      <button id="newTab" class="px-4 py-2 mx-2 bg-black text-white rounded hover:bg-gray-800 focus:outline-none active-tab">Активні замовлення</button>
-      <button id="doneTab" class="px-4 py-2 mx-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400 focus:outline-none">Виконані замовлення</button>
+      <button id="newTab" class="px-4 py-2 mx-2 bg-black text-white rounded hover:bg-gray-800">Активні замовлення</button>
+      <button id="doneTab" class="px-4 py-2 mx-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400">Виконані замовлення</button>
     </div>
 
     <div id="newOrdersContainer">
@@ -47,7 +47,7 @@
       apiKey: "AIzaSyAn38s4mZz7KEli4594dSUZxk-xFc_NW0k",
       authDomain: "menublabla-14673.firebaseapp.com",
       projectId: "menublabla-14673",
-      storageBucket: "menublabla-14673.firebasestorage.app",
+      storageBucket: "menublabla-14673.appspot.com",
       messagingSenderId: "905582931206",
       appId: "1:905582931206:web:c8156750a9fdf428894287"
     };
@@ -58,20 +58,35 @@
 
     const notificationSound = document.getElementById('notificationSound');
     const soundToggle = document.getElementById('soundToggle');
-    const knownOrderIds = new Set();
+    const logoutButton = document.getElementById('logoutButton');
+    const newTab = document.getElementById('newTab');
+    const doneTab = document.getElementById('doneTab');
+    const newOrdersSection = document.getElementById('newOrdersContainer');
+    const doneOrdersSection = document.getElementById('doneOrdersContainer');
 
-    document.getElementById('logoutButton').addEventListener('click', () => {
+    logoutButton.addEventListener('click', () => {
       signOut(auth).then(() => {
         window.location.href = 'kitchen-login.html';
       });
     });
 
+    newTab.addEventListener('click', () => toggleTabs(true));
+    doneTab.addEventListener('click', () => toggleTabs(false));
+
+    function toggleTabs(showNew) {
+      newOrdersSection.classList.toggle('hidden', !showNew);
+      doneOrdersSection.classList.toggle('hidden', showNew);
+      newTab.classList.toggle('bg-black', showNew);
+      newTab.classList.toggle('bg-gray-300', !showNew);
+      doneTab.classList.toggle('bg-black', !showNew);
+      doneTab.classList.toggle('bg-gray-300', showNew);
+    }
+
     onAuthStateChanged(auth, (user) => {
-      const allowed = ['kitchen@bla.com'];
-      if (user && allowed.includes(user.email)) {
+      if (user?.email === 'kitchen@bla.com') {
         initKitchen();
       } else {
-        alert("Доступ заборонено. Ви не кухар.");
+        alert("Доступ заборонено.");
         signOut(auth).then(() => {
           window.location.href = 'kitchen-login.html';
         });
@@ -81,42 +96,21 @@
     function initKitchen() {
       const newOrdersContainer = document.getElementById('newOrders');
       const doneOrdersContainer = document.getElementById('doneOrders');
-      const newTab = document.getElementById('newTab');
-      const doneTab = document.getElementById('doneTab');
-      const newOrdersSection = document.getElementById('newOrdersContainer');
-      const doneOrdersSection = document.getElementById('doneOrdersContainer');
-
-      newTab.addEventListener('click', () => {
-        newOrdersSection.classList.remove('hidden');
-        doneOrdersSection.classList.add('hidden');
-        newTab.classList.add('bg-black', 'text-white');
-        newTab.classList.remove('bg-gray-300', 'text-gray-800');
-        doneTab.classList.add('bg-gray-300', 'text-gray-800');
-        doneTab.classList.remove('bg-black', 'text-white');
-      });
-
-      doneTab.addEventListener('click', () => {
-        doneOrdersSection.classList.remove('hidden');
-        newOrdersSection.classList.add('hidden');
-        doneTab.classList.add('bg-black', 'text-white');
-        doneTab.classList.remove('bg-gray-300', 'text-gray-800');
-        newTab.classList.add('bg-gray-300', 'text-gray-800');
-        newTab.classList.remove('bg-black', 'text-white');
-      });
+      const knownOrderIds = new Set();
 
       const newQuery = query(collection(db, 'orders'), where('status', '==', 'new'), orderBy('timestamp', 'desc'));
       const doneQuery = query(collection(db, 'orders'), where('status', '==', 'done'), orderBy('doneAt', 'desc'));
 
       onSnapshot(newQuery, (snapshot) => {
-        let playSound = false;
+        let newSound = false;
         snapshot.docChanges().forEach(change => {
           if (change.type === 'added' && !knownOrderIds.has(change.doc.id)) {
             knownOrderIds.add(change.doc.id);
-            playSound = true;
+            newSound = true;
           }
         });
         displayOrders(snapshot, newOrdersContainer, true);
-        if (playSound && soundToggle.checked) {
+        if (newSound && soundToggle.checked) {
           notificationSound.play().catch(() => {});
         }
       });
@@ -140,7 +134,8 @@
           container.innerHTML = `<p class="text-center text-gray-600">Немає ${showDoneButton ? 'активних' : 'виконаних'} замовлень.</p>`;
           return;
         }
-        snapshot.forEach((docSnap) => {
+
+        snapshot.forEach(docSnap => {
           const order = docSnap.data();
           const createdAt = order.timestamp?.toDate?.() || new Date(order.timestamp);
           const doneAt = order.doneAt?.toDate?.();
@@ -151,39 +146,40 @@
             <p class="text-gray-600">Сума: ${order.total} грн</p>
             <p class="text-gray-600">Створено: ${createdAt.toLocaleString()}</p>
             ${doneAt ? `<p class="text-gray-600">Виконано: ${doneAt.toLocaleString()}</p>` : ''}
-            <ul class="mt-2">
-              ${order.items.map(item => `
-                <li>${item.name}${item.size ? ` (${item.size})` : ''} x${item.quantity} - ${item.price * item.quantity} грн</li>
-              `).join('')}
-            </ul>
+            <ul class="mt-2">${order.items.map(item => `<li>${item.name}${item.size ? ` (${item.size})` : ''} x${item.quantity} - ${item.price * item.quantity} грн</li>`).join('')}</ul>
             <div class="mt-2 flex gap-2">
-              ${showDoneButton ? `<button class="bg-green-500 text-white px-4 py-1 rounded hover:bg-green-600" onclick="markAsDone('${docSnap.id}')">Готово</button>` : ''}
-              <button class="bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600" onclick="deleteOrder('${docSnap.id}')">Видалити</button>
-            </div>
-          `;
+              ${showDoneButton ? `<button class="bg-green-500 text-white px-4 py-1 rounded hover:bg-green-600 markDoneBtn" data-id="${docSnap.id}">Готово</button>` : ''}
+              <button class="bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600 deleteBtn" data-id="${docSnap.id}">Видалити</button>
+            </div>`;
           container.appendChild(div);
         });
-      }
 
-      window.markAsDone = async function(orderId) {
-        try {
-          await updateDoc(doc(db, 'orders', orderId), {
-            status: 'done',
-            doneAt: serverTimestamp()
+        container.querySelectorAll('.markDoneBtn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const orderId = btn.getAttribute('data-id');
+            try {
+              await updateDoc(doc(db, 'orders', orderId), {
+                status: 'done',
+                doneAt: serverTimestamp()
+              });
+            } catch {
+              alert('Помилка при оновленні статусу.');
+            }
           });
-        } catch (err) {
-          alert('Помилка при оновленні статусу.');
-        }
-      };
+        });
 
-      window.deleteOrder = async function(orderId) {
-        if (!confirm('Ви впевнені, що хочете видалити це замовлення?')) return;
-        try {
-          await deleteDoc(doc(db, 'orders', orderId));
-        } catch (err) {
-          alert('Помилка при видаленні замовлення.');
-        }
-      };
+        container.querySelectorAll('.deleteBtn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const orderId = btn.getAttribute('data-id');
+            if (!confirm('Ви впевнені, що хочете видалити це замовлення?')) return;
+            try {
+              await deleteDoc(doc(db, 'orders', orderId));
+            } catch {
+              alert('Помилка при видаленні замовлення.');
+            }
+          });
+        });
+      }
     }
   </script>
 </body>
