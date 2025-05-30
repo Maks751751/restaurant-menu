@@ -1,9 +1,6 @@
 [
   {
-    "origin": [
-      "http://127.0.0.1:5500",
-      "https://menublabla-14673.web.app"
-    ],
+    "origin": ["https://menublabla-14673.web.app"],
     "method": ["GET", "POST", "PUT"],
     "maxAgeSeconds": 3600,
     "responseHeader": ["Content-Type", "Authorization"]

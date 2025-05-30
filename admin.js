@@ -52,6 +52,7 @@ function showNotification(text) {
 }
 
 async function uploadImageAndGetUrl(file) {
+ console.log('🧪 Користувач перед завантаженням:', auth.currentUser); // ← Додали
   if (!file) return '';
   const cleanedName = sanitizeFileName(file.name);
 const fileName = `img_${Date.now()}_${cleanedName}`;
